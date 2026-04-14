@@ -6,6 +6,7 @@ import time
 import queue
 import threading
 import datetime
+import tzlocal
 import urllib.request
 import urllib.parse
 import tempfile
@@ -29,7 +30,7 @@ from dotenv import load_dotenv
 load_dotenv()
 os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY", "")
 
-TRIGGER_WORD = "computer"
+TRIGGER_WORD = "sara"
 VOSK_MODEL_PATH = "vosk-model-small-en-us-0.15"
 VIDEO_PATH = "Assets/background.mp4"
 SAMPLE_RATE = 16000
@@ -325,10 +326,12 @@ def add_calendar_event(details: str) -> str:
     parsed = parse_event_datetime(details)
     if not parsed:
         return "Couldn't understand the time. Try saying something like 'study at 9 pm today'."
+    local_tz = str(tzlocal.get_localzone())
+    local_dt = parsed.astimezone(tzlocal.get_localzone()).replace(tzinfo=None)
     event = {
         "summary": details,
-        "start": {"dateTime": parsed.isoformat(), "timeZone": "UTC"},
-        "end": {"dateTime": (parsed + datetime.timedelta(hours=1)).isoformat(), "timeZone": "UTC"},
+        "start": {"dateTime": local_dt.isoformat(), "timeZone": local_tz},
+        "end": {"dateTime": (local_dt + datetime.timedelta(hours=1)).isoformat(), "timeZone": local_tz},
     }
     try:
         service.events().insert(calendarId="primary", body=event).execute()
@@ -582,7 +585,7 @@ def handle_command(text: str) -> str:
 # VISUALIZER
 
 def run_visualizer():
-    os.environ['SDL_VIDEO_WINDOW_POS'] = f'{1240}, {510}'
+    os.environ['SDL_VIDEO_WINDOW_POS'] = f'{1240}, {620}'
     pygame.init()
     screen = pygame.display.set_mode((300, 200), pygame.NOFRAME)
     video = cv2.VideoCapture(VIDEO_PATH)
@@ -681,9 +684,9 @@ class VoiceAssistant:
                         listening = False
                         print("Sleeping...")
 
-# =========================
+
 # MAIN
-# =========================
+
 if __name__ == "__main__":
     threading.Thread(target=run_visualizer, daemon=True).start()
     VoiceAssistant().start()
